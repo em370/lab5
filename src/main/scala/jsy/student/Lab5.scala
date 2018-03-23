@@ -9,7 +9,7 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
 
   /*
    * CSCI 3155: Lab 5
-   * <Your Name>
+   * <Eric Minor>
    *
    * Partner: <Your Partner's Name>
    * Collaborators: <Any Collaborators>
@@ -41,7 +41,7 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
       case N(_) | B(_) | Undefined | S(_) | Null | A(_) => doreturn(e)
       case Print(e1) => ren(env,e1) map { e1p => Print(e1p) }
 
-      case Unary(uop, e1) => ???
+      case Unary(uop, e1) => ren(env,e1) map {e1p => Unary(uop,e1p)}
       case Binary(bop, e1, e2) => ???
       case If(e1, e2, e3) => ???
 
@@ -82,9 +82,10 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
 
   def myuniquify(e: Expr): Expr = {
     val fresh: String => DoWith[Int,String] = { _ =>
-      ???
+      doget[Int].map((i:Int) => "x" + i.toString())
+      //domodify
     }
-    val (_, r) = rename(empty, e)(fresh)(???)
+    val (_, r) = rename(empty, e)(fresh)(0)
     r
   }
 
@@ -92,22 +93,31 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
 
   // List map with an operator returning a DoWith
   def mapWith[W,A,B](l: List[A])(f: A => DoWith[W,B]): DoWith[W,List[B]] = {
-    l.foldRight[DoWith[W,List[B]]]( ??? ) {
-      ???
+    l.foldRight[DoWith[W,List[B]]]( doreturn(Nil) ){
+      case (a,dwbs) => dwbs.flatMap((bs) => f(a).map((b) => b::bs))
     }
   }
 
   // Map map with an operator returning a DoWith
   def mapWith[W,A,B,C,D](m: Map[A,B])(f: ((A,B)) => DoWith[W,(C,D)]): DoWith[W,Map[C,D]] = {
-    m.foldRight[DoWith[W,Map[C,D]]]( ??? ) {
-      ???
+    m.foldRight[DoWith[W,Map[C,D]]]( doreturn(Map()) ) {
+      case (a, dwm) => dwm.flatMap((dmap) => f(a).map((b) => dmap +(b._1->b._2)))
     }
   }
 
   // Just like mapFirst from Lab 4 but uses a callback f that returns a DoWith in the Some case.
   def mapFirstWith[W,A](l: List[A])(f: A => Option[DoWith[W,A]]): DoWith[W,List[A]] = l match {
-    case Nil => ???
-    case h :: t => ???
+    case Nil =>  doreturn(l)
+    case h :: t => f(h) match{
+      case None=> {
+        mapFirstWith(t)(f)map{ x=> List(h):::x}
+      }
+      case Some(ret) => {
+        ret map{
+          a => List(a):::t
+        }
+      }
+    }
   }
 
   // There are better ways to deal with the combination of data structures like List, Map, and
@@ -117,7 +127,9 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
 
   def castOk(t1: Typ, t2: Typ): Boolean = (t1, t2) match {
       /***** Make sure to replace the case _ => ???. */
-    //case _ => ???
+    case _ if(t1==t2) => true
+    case (TNull,_) => true
+
       /***** Cases for the extra credit. Do not attempt until the rest of the assignment is complete. */
     case (TInterface(tvar, t1p), _) => ???
     case (_, TInterface(tvar, t2p)) => ???
@@ -136,7 +148,10 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
     case _ => false
   }
 
-  def isBindex(m: Mode, e: Expr): Boolean = ???
+  def isBindex(m: Mode, e: Expr): Boolean = m match {
+    case (MName|MConst|MVar) => true
+    case MRef => false
+  }
 
   def typeof(env: TEnv, e: Expr): Typ = {
     def err[T](tgot: Typ, e1: Expr): T = throw StaticTypeError(tgot, e1, e)
@@ -153,27 +168,57 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
         case tgot => err(tgot, e1)
       }
         /***** Cases directly from Lab 4. We will minimize the test of these cases in Lab 5. */
-      case Unary(Not, e1) =>
-        ???
-      case Binary(Plus, e1, e2) =>
-        ???
-      case Binary(Minus|Times|Div, e1, e2) =>
-        ???
-      case Binary(Eq|Ne, e1, e2) =>
-        ???
-      case Binary(Lt|Le|Gt|Ge, e1, e2) =>
-        ???
-      case Binary(And|Or, e1, e2) =>
-        ???
-      case Binary(Seq, e1, e2) =>
-        ???
-      case If(e1, e2, e3) =>
-        ???
+      case Unary(Not, e1) => typeof(env, e1) match {
+        case TBool => TBool
+        case tgot => err(tgot, e1)
+      }
+      case Binary(Plus, e1, e2) => (typeof(env,e1), typeof(env,e2)) match {
+        case (TNumber,TNumber) => TNumber
+        case (TString, TString) => TString
+        case (TNumber|TString,tgot) => err(tgot, e2)
+        case (tgot, TString|TNumber) => err(tgot,e1)
+        case (tgot1, _) => err(tgot1, e1)
+      }
+      case Binary(Minus|Times|Div, e1, e2) => (typeof(env ,e1), typeof(env,e2)) match {
+        case (TNumber, TNumber) => TNumber
+        case (tgot,TNumber) => err(tgot, e1)
+        case (TNumber, tgot) => err(tgot, e2)
+        case (tgot, _)=> err(tgot, e1)
+      }
+      case Binary(Eq|Ne, e1, e2) => (typeof(env,e1), typeof(env,e2)) match {
+        case (t1, _) if hasFunctionTyp(t1) => err(t1,e1)
+        case (_, t2) if hasFunctionTyp(t2) => err(t2, e2)
+        case (t1, t2) => if (t1 == t2) TBool else err(t2, e2)
+      }
+      case Binary(Lt|Le|Gt|Ge, e1, e2) => (typeof(env,e1), typeof(env,e2)) match {
+        case (TNumber,TNumber) => TBool
+        case (TString, TString) => TBool
+        case (TNumber|TString,tgot) => err(tgot, e2)
+        case (tgot, TString|TNumber) => err(tgot,e1)
+        case (tgot1, _) => err(tgot1, e1)
+      }
+      case Binary(And|Or, e1, e2) => (typeof(env,e1),typeof(env,e2)) match {
+        case (TBool, TBool) => TBool
+        case (TBool, tgot) => err(tgot, e2)
+        case (tgot,_) => err(tgot, e1)
+      }
+      case Binary(Seq, e1, e2) => (typeof(env,e1), typeof(env,e2)) match {
+        case (_ , t2) => t2
+      }
+      case If(e1, e2, e3) => (typeof(env, e1), typeof(env, e2), typeof(env, e3)) match {
+        case (TBool, t1, t2)  => if(t1 == t2) t1 else err(t2, e2)
+        case (tgot, _, _) => err(tgot, e1)
+      }
 
-      case Obj(fields) =>
-        ???
-      case GetField(e1, f) =>
-        ???
+      case Obj(fields) => fields foreach {(ei) => typeof(env,ei._2)}
+        TObj(fields mapValues { (ei) => typeof(env, ei)})
+      case GetField(e1, f) =>  typeof(env, e1) match {
+        case TObj(tfields) => tfields.get(f) match {
+          case Some(value) => value
+          case None => err(TObj(tfields), e1)
+        }
+        case tgot => err(tgot, e1)
+      }
 
         /***** Cases from Lab 4 that need a small amount of adapting. */
       case Decl(m, x, e1, e2) =>
