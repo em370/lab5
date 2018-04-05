@@ -42,13 +42,12 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
       case Print(e1) => ren(env,e1) map { e1p => Print(e1p) }
 
       case Unary(uop, e1) => ren(env,e1) map {e1p => Unary(uop,e1p)}
-      case Binary(bop, e1, e2) => ???
-      case If(e1, e2, e3) => ???
-
-      case Var(x) => ???
+      case Binary(bop, e1, e2) => ren(env,e1).flatMap({e1p=>ren(env,e2).map(e2p => Binary(bop,e1p,e2p))})
+      case If(e1, e2, e3) => ren(env,e1).flatMap({e1p=>ren(env,e2).flatMap(e2p => ren(env,e3).map(e3p=>If(e1p,e2p,e3p)))})
+      case Var(x) => doreturn(if(env contains x) Var(lookup(env,x)) else Var(x))
 
       case Decl(m, x, e1, e2) => fresh(x) flatMap { xp =>
-        ???
+        ren(env, e1) flatMap{e1p => ren(extend(env,x,xp),e2) map {e2p => Decl(m,xp,e1p,e2p)}}
       }
 
       case Function(p, params, retty, e1) => {
@@ -82,8 +81,16 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
 
   def myuniquify(e: Expr): Expr = {
     val fresh: String => DoWith[Int,String] = { _ =>
-      doget[Int].map((i:Int) => "x" + i.toString())
-      //domodify
+      doget[Int].flatMap{(i) => val nx ="x" + i.toString()
+        doput(i+1) map {_ => nx}} //domodify
+    }
+    val (_, r) = rename(empty, e)(fresh)(0)
+    r
+  }
+
+  def myuniquify(e: Expr): Expr = {
+    val fresh: String => DoWith[Int,String] = { _ =>
+      doget.flatMap(i => domodify((i:Int)=>i+1) map (old_res=>"x" +i.toString))
     }
     val (_, r) = rename(empty, e)(fresh)(0)
     r
@@ -150,7 +157,8 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
 
   def isBindex(m: Mode, e: Expr): Boolean = m match {
     case (MName|MConst|MVar) => true
-    case MRef => false
+    case MRef if(isLExpr(e)) => true
+    case _ => false
   }
 
   def typeof(env: TEnv, e: Expr): Typ = {
@@ -221,8 +229,8 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
       }
 
         /***** Cases from Lab 4 that need a small amount of adapting. */
-      case Decl(m, x, e1, e2) =>
-        ???
+      case Decl(m, x, e1, e2) => ???
+
       case Function(p, params, tann, e1) => {
         // Bind to env1 an environment that extends env with an appropriate binding if
         // the function is potentially recursive.
@@ -340,7 +348,12 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
       /* Base Cases: Do Rules */
       case Print(v1) if isValue(v1) => doget map { m => println(pretty(m, v1)); Undefined }
         /***** Cases needing adapting from Lab 3. */
-      case Unary(Neg, v1) if isValue(v1) => ???
+      case Unary(Neg, v1) if isValue(v1) => doget map {_=>
+        v1 match{
+          case N(n) => N(-n)
+          case _ => throw StuckError(e)
+        }
+      }
         /***** More cases here */
         /***** Cases needing adapting from Lab 4. */
       case Obj(fields) if (fields forall { case (_, vi) => isValue(vi)}) =>
