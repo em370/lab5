@@ -52,8 +52,8 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
 
       case Function(p, params, retty, e1) => {
         val w: DoWith[W,(Option[String], Map[String,String])] = p match {
-          case None => ???
-          case Some(x) => ???
+          case None => doreturn((None,env))
+          case Some(x) => fresh(x) map (xp => (Some(xp),env +(x -> xp)))
         }
         w flatMap { case (pp, envp) =>
           params.foldRight[DoWith[W,(List[(String,MTyp)],Map[String,String])]]( doreturn((Nil, envp)) ) {
@@ -78,7 +78,7 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
     }
     ren(env, e)
   }
-
+/*
   def myuniquify(e: Expr): Expr = {
     val fresh: String => DoWith[Int,String] = { _ =>
       doget[Int].flatMap{(i) => val nx ="x" + i.toString()
@@ -87,7 +87,7 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
     val (_, r) = rename(empty, e)(fresh)(0)
     r
   }
-
+*/
   def myuniquify(e: Expr): Expr = {
     val fresh: String => DoWith[Int,String] = { _ =>
       doget.flatMap(i => domodify((i:Int)=>i+1) map (old_res=>"x" +i.toString))
@@ -170,7 +170,10 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
       case B(_) => TBool
       case Undefined => TUndefined
       case S(_) => TString
-      case Var(x) => ???
+      case Var(x) => {
+        val MTyp(_,t) = lookup(env,x)
+        t
+      }
       case Unary(Neg, e1) => typeof(env, e1) match {
         case TNumber => TNumber
         case tgot => err(tgot, e1)
@@ -229,7 +232,11 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
       }
 
         /***** Cases from Lab 4 that need a small amount of adapting. */
-      case Decl(m, x, e1, e2) => ???
+      case Decl(m, x, e1, e2) if(isBindex(m,e1)) => {
+        val env2 = extend(env,x,MTyp(m,typeof(env,e1)))
+        typeof(env2,e2)
+
+      }
 
       case Function(p, params, tann, e1) => {
         // Bind to env1 an environment that extends env with an appropriate binding if
