@@ -1,0 +1,69 @@
+## type Decl(MConst,f,Function(None,List((x,MTyp(MRef,TNumber))),Some(TNumber),Binary(Seq,Assign(Var(x),Binary(Plus,Var(x),N(1.0))),Var(x))),Decl(MConst,obj,Obj(Map(value -> N(15.0))),Decl(MVar,y,N(5.0),Decl(MConst,z,Call(Var(f),List(GetField(Var(obj),value))),Decl(MConst,q,Call(Var(f),List(Var(y))),Binary(Seq,Print(Binary(Plus,Var(q),Var(z))),Var(obj))))))) : { value: number }
+## step    0:
+##  Map()
+##  Decl(MConst,f,Function(None,List((x,MTyp(MRef,TNumber))),Some(TNumber),Binary(Seq,Assign(Var(x),Binary(Plus,Var(x),N(1.0))),Var(x))),Decl(MConst,obj,Obj(Map(value -> N(15.0))),Decl(MVar,y,N(5.0),Decl(MConst,z,Call(Var(f),List(GetField(Var(obj),value))),Decl(MConst,q,Call(Var(f),List(Var(y))),Binary(Seq,Print(Binary(Plus,Var(q),Var(z))),Var(obj)))))))
+## step    1:
+##  Map()
+##  Decl(MConst,obj,Obj(Map(value -> N(15.0))),Decl(MVar,y,N(5.0),Decl(MConst,z,Call(Function(None,List((x,MTyp(MRef,TNumber))),Some(TNumber),Binary(Seq,Assign(Var(x),Binary(Plus,Var(x),N(1.0))),Var(x))),List(GetField(Var(obj),value))),Decl(MConst,q,Call(Function(None,List((x,MTyp(MRef,TNumber))),Some(TNumber),Binary(Seq,Assign(Var(x),Binary(Plus,Var(x),N(1.0))),Var(x))),List(Var(y))),Binary(Seq,Print(Binary(Plus,Var(q),Var(z))),Var(obj))))))
+## step    2:
+##  Map(A(1) -> Obj(Map(value -> N(15.0))))
+##  Decl(MConst,obj,A(1),Decl(MVar,y,N(5.0),Decl(MConst,z,Call(Function(None,List((x,MTyp(MRef,TNumber))),Some(TNumber),Binary(Seq,Assign(Var(x),Binary(Plus,Var(x),N(1.0))),Var(x))),List(GetField(Var(obj),value))),Decl(MConst,q,Call(Function(None,List((x,MTyp(MRef,TNumber))),Some(TNumber),Binary(Seq,Assign(Var(x),Binary(Plus,Var(x),N(1.0))),Var(x))),List(Var(y))),Binary(Seq,Print(Binary(Plus,Var(q),Var(z))),Var(obj))))))
+## step    3:
+##  Map(A(1) -> Obj(Map(value -> N(15.0))))
+##  Decl(MVar,y,N(5.0),Decl(MConst,z,Call(Function(None,List((x,MTyp(MRef,TNumber))),Some(TNumber),Binary(Seq,Assign(Var(x),Binary(Plus,Var(x),N(1.0))),Var(x))),List(GetField(A(1),value))),Decl(MConst,q,Call(Function(None,List((x,MTyp(MRef,TNumber))),Some(TNumber),Binary(Seq,Assign(Var(x),Binary(Plus,Var(x),N(1.0))),Var(x))),List(Var(y))),Binary(Seq,Print(Binary(Plus,Var(q),Var(z))),A(1)))))
+## step    4:
+##  Map(A(1) -> Obj(Map(value -> N(15.0))), A(2) -> N(5.0))
+##  Decl(MConst,z,Call(Function(None,List((x,MTyp(MRef,TNumber))),Some(TNumber),Binary(Seq,Assign(Var(x),Binary(Plus,Var(x),N(1.0))),Var(x))),List(GetField(A(1),value))),Decl(MConst,q,Call(Function(None,List((x,MTyp(MRef,TNumber))),Some(TNumber),Binary(Seq,Assign(Var(x),Binary(Plus,Var(x),N(1.0))),Var(x))),List(Unary(Deref,A(2)))),Binary(Seq,Print(Binary(Plus,Var(q),Var(z))),A(1))))
+## step    5:
+##  Map(A(1) -> Obj(Map(value -> N(15.0))), A(2) -> N(5.0))
+##  Decl(MConst,z,Binary(Seq,Assign(GetField(A(1),value),Binary(Plus,GetField(A(1),value),N(1.0))),GetField(A(1),value)),Decl(MConst,q,Call(Function(None,List((x,MTyp(MRef,TNumber))),Some(TNumber),Binary(Seq,Assign(Var(x),Binary(Plus,Var(x),N(1.0))),Var(x))),List(Unary(Deref,A(2)))),Binary(Seq,Print(Binary(Plus,Var(q),Var(z))),A(1))))
+## step    6:
+##  Map(A(1) -> Obj(Map(value -> N(15.0))), A(2) -> N(5.0))
+##  Decl(MConst,z,Binary(Seq,Assign(GetField(A(1),value),Binary(Plus,N(15.0),N(1.0))),GetField(A(1),value)),Decl(MConst,q,Call(Function(None,List((x,MTyp(MRef,TNumber))),Some(TNumber),Binary(Seq,Assign(Var(x),Binary(Plus,Var(x),N(1.0))),Var(x))),List(Unary(Deref,A(2)))),Binary(Seq,Print(Binary(Plus,Var(q),Var(z))),A(1))))
+## step    7:
+##  Map(A(1) -> Obj(Map(value -> N(15.0))), A(2) -> N(5.0))
+##  Decl(MConst,z,Binary(Seq,Assign(GetField(A(1),value),N(16.0)),GetField(A(1),value)),Decl(MConst,q,Call(Function(None,List((x,MTyp(MRef,TNumber))),Some(TNumber),Binary(Seq,Assign(Var(x),Binary(Plus,Var(x),N(1.0))),Var(x))),List(Unary(Deref,A(2)))),Binary(Seq,Print(Binary(Plus,Var(q),Var(z))),A(1))))
+## step    8:
+##  Map(A(1) -> Obj(Map(value -> N(16.0))), A(2) -> N(5.0))
+##  Decl(MConst,z,Binary(Seq,N(16.0),GetField(A(1),value)),Decl(MConst,q,Call(Function(None,List((x,MTyp(MRef,TNumber))),Some(TNumber),Binary(Seq,Assign(Var(x),Binary(Plus,Var(x),N(1.0))),Var(x))),List(Unary(Deref,A(2)))),Binary(Seq,Print(Binary(Plus,Var(q),Var(z))),A(1))))
+## step    9:
+##  Map(A(1) -> Obj(Map(value -> N(16.0))), A(2) -> N(5.0))
+##  Decl(MConst,z,GetField(A(1),value),Decl(MConst,q,Call(Function(None,List((x,MTyp(MRef,TNumber))),Some(TNumber),Binary(Seq,Assign(Var(x),Binary(Plus,Var(x),N(1.0))),Var(x))),List(Unary(Deref,A(2)))),Binary(Seq,Print(Binary(Plus,Var(q),Var(z))),A(1))))
+## step   10:
+##  Map(A(1) -> Obj(Map(value -> N(16.0))), A(2) -> N(5.0))
+##  Decl(MConst,z,N(16.0),Decl(MConst,q,Call(Function(None,List((x,MTyp(MRef,TNumber))),Some(TNumber),Binary(Seq,Assign(Var(x),Binary(Plus,Var(x),N(1.0))),Var(x))),List(Unary(Deref,A(2)))),Binary(Seq,Print(Binary(Plus,Var(q),Var(z))),A(1))))
+## step   11:
+##  Map(A(1) -> Obj(Map(value -> N(16.0))), A(2) -> N(5.0))
+##  Decl(MConst,q,Call(Function(None,List((x,MTyp(MRef,TNumber))),Some(TNumber),Binary(Seq,Assign(Var(x),Binary(Plus,Var(x),N(1.0))),Var(x))),List(Unary(Deref,A(2)))),Binary(Seq,Print(Binary(Plus,Var(q),N(16.0))),A(1)))
+## step   12:
+##  Map(A(1) -> Obj(Map(value -> N(16.0))), A(2) -> N(5.0))
+##  Decl(MConst,q,Binary(Seq,Assign(Unary(Deref,A(2)),Binary(Plus,Unary(Deref,A(2)),N(1.0))),Unary(Deref,A(2))),Binary(Seq,Print(Binary(Plus,Var(q),N(16.0))),A(1)))
+## step   13:
+##  Map(A(1) -> Obj(Map(value -> N(16.0))), A(2) -> N(5.0))
+##  Decl(MConst,q,Binary(Seq,Assign(Unary(Deref,A(2)),Binary(Plus,N(5.0),N(1.0))),Unary(Deref,A(2))),Binary(Seq,Print(Binary(Plus,Var(q),N(16.0))),A(1)))
+## step   14:
+##  Map(A(1) -> Obj(Map(value -> N(16.0))), A(2) -> N(5.0))
+##  Decl(MConst,q,Binary(Seq,Assign(Unary(Deref,A(2)),N(6.0)),Unary(Deref,A(2))),Binary(Seq,Print(Binary(Plus,Var(q),N(16.0))),A(1)))
+## step   15:
+##  Map(A(1) -> Obj(Map(value -> N(16.0))), A(2) -> N(6.0))
+##  Decl(MConst,q,Binary(Seq,N(6.0),Unary(Deref,A(2))),Binary(Seq,Print(Binary(Plus,Var(q),N(16.0))),A(1)))
+## step   16:
+##  Map(A(1) -> Obj(Map(value -> N(16.0))), A(2) -> N(6.0))
+##  Decl(MConst,q,Unary(Deref,A(2)),Binary(Seq,Print(Binary(Plus,Var(q),N(16.0))),A(1)))
+## step   17:
+##  Map(A(1) -> Obj(Map(value -> N(16.0))), A(2) -> N(6.0))
+##  Decl(MConst,q,N(6.0),Binary(Seq,Print(Binary(Plus,Var(q),N(16.0))),A(1)))
+## step   18:
+##  Map(A(1) -> Obj(Map(value -> N(16.0))), A(2) -> N(6.0))
+##  Binary(Seq,Print(Binary(Plus,N(6.0),N(16.0))),A(1))
+## step   19:
+##  Map(A(1) -> Obj(Map(value -> N(16.0))), A(2) -> N(6.0))
+##  Binary(Seq,Print(N(22.0)),A(1))
+22.0
+## step   20:
+##  Map(A(1) -> Obj(Map(value -> N(16.0))), A(2) -> N(6.0))
+##  Binary(Seq,Undefined,A(1))
+## result:
+##  Map(A(1) -> Obj(Map(value -> N(16.0))), A(2) -> N(6.0))
+##  A(1)
+0x1

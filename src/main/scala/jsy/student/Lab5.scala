@@ -245,22 +245,21 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
       case Function(p, params, tann, e1) => {
         // Bind to env1 an environment that extends env with an appropriate binding if
         // the function is potentially recursive.
+        // TypeFunction
         val env1 = (p, tann) match {
-          case (Some(f), Some(tret)) =>
-            val tprime = TFunction(params, tret)
-            extend(env,f,MTyp(MConst,tprime))
+          case (Some(f), Some(tret)) => //TypeRecFunction
+            val tprime = TFunction(params, tret)  // if function has a name, it can be recursive
+            extend(env, f, MTyp(MConst,tprime)) // TypeFunction
           case (None, _) => env
           case _ => err(TUndefined, e1)
         }
         // Bind to env2 an environment that extends env1 with bindings for params.
-        val env2 = params.foldLeft(env1)({
-          case (currEnv,(s: String, mt)) => extend(currEnv, s, mt)
-        })
-        val timp = typeof(env1, e1)
+        val env2 = params.foldLeft(env1)({ case (currEnv : TEnv, (s :String, mt @ MTyp(_,_))) =>currEnv + (s -> mt)}) // extend env by each parameter
+        val t1 = typeof(env2, e1)
         // Match on whether the return type is specified.
         tann match {
-          case None => TFunction(params,timp)
-          case Some(tret) => if(TFunction(params,timp) == TFunction(params,tret)) TFunction(params, timp) else err(TFunction(params, timp), e1)
+          case None => TFunction(params, t1)   // TypeFunctionAnn
+          case Some(tret) => if(TFunction(params,t1) == TFunction(params,tret)) TFunction(params, t1) else err(TFunction(params, tret), e1)
         }
       }
       case Call(e1, args) => typeof(env, e1) match {
@@ -335,23 +334,23 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
       case N(_) | B(_) | Undefined | S(_) | Null | A(_) => e
       case Print(e1) => Print(subst(e1))
         /***** Cases from Lab 3 */
-      case Unary(uop, e1) => Unary(uop, substitute(e1, esub, x))
-      case Binary(bop, e1, e2) => Binary(bop, substitute(e1, esub, x), substitute(e2, esub, x))
-      case If(e1, e2, e3) => If(substitute(e1, esub, x), substitute(e2, esub, x), substitute(e3, esub, x))
+      case Unary(uop, e1) => Unary(uop, subst(e1)) // sub v for x in inner expressions
+      case Binary(bop, e1, e2) => Binary(bop, subst(e1), subst(e2)) // sub inner expressions
+      case If(e1, e2, e3) => If(subst(e1), subst(e2), subst(e3))
       case Var(y) => if (x == y) esub else Var(y)
         /***** Cases need a small adaption from Lab 3 */
       case Decl(mut, y, e1, e2) => Decl(mut, y, subst(e1), if (x == y) e2 else subst(e2))
         /***** Cases needing adapting from Lab 4 */
-      case Function(p, params, tann, e1) => p match {
-        case Some(pp) => if (pp == x || params.exists(pa => pa._1 == x)) e else Function(p, params, tann,  subst(e1))
-        case None => if (params.exists(pa => pa._1 == x)) e else Function(p, params, tann, subst(e1))
+      case Function(p, params, retty, e1) => p match {
+        case Some(pp) => if (pp == x || params.exists(pa => pa._1 == x)) e else Function(p, params, retty, subst(e1))
+        case None => if (params.exists(pa => pa._1 == x)) e else Function(p, params, retty, subst(e1))
       }
         /***** Cases directly from Lab 4 */
-      case Call(e1, args) => Call(substitute(e1, esub, x), args map {ei => substitute(ei,esub,x)})
-      case Obj(fields) => Obj(fields mapValues { (exp) => substitute(exp, esub, x)})
-      case GetField(e1, f) => GetField(substitute(e1,esub,x), f)
+      case Call(e1, args) => Call(subst(e1), args map {ei => subst(ei)})
+      case Obj(fields) => Obj(fields mapValues { (exp) => subst(exp)}) // substitute all x in all value expr with esub
+      case GetField(e1, f) => GetField(subst(e1), f)
         /***** New case for Lab 5 */
-      case Assign(e1, e2) => Assign(subst(e1),subst(e2))
+      case Assign(e1, e2) => Assign(subst(e1), subst(e2))
 
       /* Should not match: should have been removed */
       case InterfaceDecl(_, _, _) => throw new IllegalArgumentException("Gremlins: Encountered unexpected expression %s.".format(e))
@@ -389,9 +388,10 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
     e match {
       /* Base Cases: Do Rules */
       case Print(v1) if isValue(v1) => doget map { m => println(pretty(m, v1)); Undefined }
-        /***** Cases needing adapting from Lab 3. */
-      case Unary(Neg, v1) if isValue(v1) => doget map {_=>
-        v1 match{
+
+      /** *** Cases needing adapting from Lab 3. */
+      case Unary(Neg, v1) if isValue(v1) => doget map { _ =>
+        v1 match {
           case N(n) => N(-n)
           case _ => throw StuckError(e)
         }
@@ -403,7 +403,7 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
           case _ => throw StuckError(e)
         }
       }
-      case Binary(Seq, v1, e2) if isValue(v1) => doget map { _ => e2} // do seq
+      case Binary(Seq, v1, e2) if isValue(v1) => doget map { _ => e2 } // do seq
 
       case Binary(Plus, v1, v2) if isValue(v1) && isValue(v2) => doget map { _ =>
         (v1, v2) match { // do plus
@@ -412,7 +412,7 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
           case _ => throw StuckError(e)
         }
       }
-      case Binary(bop @ (Eq | Ne), v1,v2) if isValue(v1) && isValue(v2) => doget map { _ =>
+      case Binary(bop@(Eq | Ne), v1, v2) if isValue(v1) && isValue(v2) => doget map { _ =>
         bop match {
           case Eq => B(v1 == v2)
           case Ne => B(v1 != v2)
@@ -456,52 +456,64 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
           case _ => throw StuckError(e)
         }
       }
-        /***** More cases here */
-        /***** Cases needing adapting from Lab 4. */
-      case Obj(fields) if (fields forall { case (_, vi) => isValue(vi)}) =>
+
+      /** *** More cases here */
+      /** *** Cases needing adapting from Lab 4. */
+      case Obj(fields) if (fields forall { case (_, vi) => isValue(vi) }) =>
         memalloc(e)
-      case GetField(a @ A(_), f) =>
-        doget map{
-          m=>m(a) match {
-            case Obj(fields) => fields(f)
-            case _ => throw StuckError(e)
-          }
+      case GetField(a @ A(_), f) => doget map {m => m(a) match {
+          case Obj(fields) => fields(f)
+          case _=> throw StuckError(e)
         }
+      }
 
-      case Decl(MConst, x, v1, e2) if isValue(v1) =>
-        doget map {_ => substitute(e2, v1, x)}
-      case Decl(MVar, x, v1, e2) if isValue(v1) =>
-        memalloc(v1) map {va => substitute(e2, Unary(Deref, va), x)}
-
-        /***** New cases for Lab 5. */
+      case Decl(m, x, e1, e2) if !isRedex(m, e1) => getBinding(m, e1) map { e1p => substitute(e2, e1p, x)}
+      /*
+            case Decl(MConst, x, v1, e2) if isValue(v1) =>
+              doget map { _ => substitute(e2, v1, x) }
+            case Decl(MVar, x, v1, e2) if isValue(v1) =>
+              memalloc(v1) map { va => substitute(e2, Unary(Deref, va), x) }
+              */
+      /** *** New cases for Lab 5. */
       case Unary(Deref, a @ A(_)) =>
-        doget map {
-          m => m.get(a) match {
-            case Some(ex) => ex
-            case None => throw NullDereferenceError(e)
-          }
+        doget map {loc => loc get a match {
+          case Some(expr) => expr
+          case None => throw StuckError(e)
+        }
         }
 
-      case Assign(Unary(Deref, a @ A(_)), v) if isValue(v) =>
-        domodify[Mem] { m => m+(a->v) } map { _ => v }
+      case Assign(Unary(Deref, a@A(_)), v) if isValue(v) =>
+        domodify[Mem] { m => m + (a -> v) } map { _ => v }
       case Unary(Cast(t), Null) => t match {
         case TObj(_) => doreturn(Null)
-        case _=> throw StuckError(e)
+        case _ => throw StuckError(e)
       }
-      case Assign(GetField(a @ A(_), f), v) if isValue(v) =>
-        domodify[Mem] {
-          m => m(a) match {
-
-            case Obj(fields) => m + (a -> Obj(fields + ((f,v))))
-            case _=> throw StuckError(e)
+      case Unary(Cast(t), v1) if isValue(v1) => v1 match {
+        case a @ A(_) => doget map { addr => addr get a match {
+          case Some(Obj(fields)) => t match {
+            case TObj(tfields) => if (tfields forall { case (fi:String, ti : Typ) => fields contains fi }) a else throw DynamicTypeError(e)
+            case _ => throw StuckError(e)
           }
-        } map { _ => v}
+          case _ => throw StuckError(e)
+        }
+        }
+        case _ => doreturn(v1)
+      }
+      case Assign(GetField(a@A(_), f), v) if isValue(v) =>
+        domodify[Mem] {
+          m =>
+            m(a) match {
 
-          case Call(v @ Function(p, params, _, e), args) => {
+              case Obj(fields) => m + (a -> Obj(fields + ((f, v))))
+              case _ => throw StuckError(e)
+            }
+        } map { _ => v }
+
+      case Call(v @ Function(p, params, _, e), args) => { // is Function
         val pazip = params zip args
         if (pazip forall{  case ((_, MTyp(m,_)), arg) => !isRedex(m, arg)}) {
-          val dwep = pazip.foldRight( ??? : DoWith[Mem,Expr] )  {
-            case (((xi, MTyp(mi, _)), ei), dwacc) => ???
+          val dwep = pazip.foldRight( doreturn(e) : DoWith[Mem,Expr] )  {
+            case (((xi, MTyp(mi, _)), ei), dwacc) => getBinding(mi, ei) flatMap { eip => dwacc map { ep => substitute(ep, eip, xi)}}
           }
           p match {
             case None => dwep
@@ -518,34 +530,38 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
       }
 
       /* Base Cases: Error Rules */
-        /***** Replace the following case with a case to throw NullDeferenceError.  */
+      /** *** Replace the following case with a case to throw NullDeferenceError.  */
       //case _ => throw NullDeferenceError(e)
       case GetField(Null, _) => throw NullDereferenceError(e)
       case Assign(GetField(Null, _), e2) => throw NullDereferenceError(e)
       /* Inductive Cases: Search Rules */
-        /***** Cases needing adapting from Lab 3. Make sure to replace the case _ => ???. */
+      /** *** Cases needing adapting from Lab 3. Make sure to replace the case _ => ???. */
       case Print(e1) => step(e1) map { e1p => Print(e1p) }
       case Unary(uop, e1) =>
-        step (e1) map {e1p => Unary(uop , e1p)}
-      case Binary(bop, v1, e2) if isValue(v1) => step(e2) map { e2p => Binary(bop, v1, e2p)} // v1 is value BinarySearch 2
-      case Binary(bop, e1, e2) => step(e1) map {e1p => Binary(bop, e1p, e2)}
-      case If(e1, e2, e3) => step(e1) map {e1p => If(e1p, e2, e3)} // e1 is not a value (wouldve been caught earlier)
-        /***** Cases needing adapting from Lab 4 */
+        step(e1) map { e1p => Unary(uop, e1p) }
+      case Binary(bop, v1, e2) if isValue(v1) => step(e2) map { e2p => Binary(bop, v1, e2p) } // v1 is value BinarySearch 2
+      case Binary(bop, e1, e2) => step(e1) map { e1p => Binary(bop, e1p, e2) }
+      case If(e1, e2, e3) => step(e1) map { e1p => If(e1p, e2, e3) } // e1 is not a value (wouldve been caught earlier)
+      /** *** Cases needing adapting from Lab 4 */
       case GetField(e1, f) =>
-        step(e1) map {e1p => GetField(e1p, f)}
+        step(e1) map { e1p => GetField(e1p, f) }
+
       case Obj(fields) =>
-        ???
+        fields find { vals => !isValue(vals._2) } match { // find first key that doesn't map to value
+          case Some((fs, es)) => step(es) map { es2 => Obj(fields + (fs -> es2)) }
+        }
 
-      case Decl(mode, x, e1, e2) =>
-        ???
-      case Call(e1, args) =>
-        ???
+      case Decl(mode, x, e1, e2) if (isRedex(mode, e1)) => {
+        step(e1) map (e12 => Decl(mode, x, e12, e2))
+      }
+      case Call(e1, args) => step(e1) map { e12 => Call(e12, args) }
 
-        /***** New cases for Lab 5.  */
-      case Assign(e1, e2) if ??? =>
-        ???
+      /** *** New cases for Lab 5.  */
+      case Assign(e1, e2) if (isLValue(e1)) => {
+        step(e2) map { e2p => Assign(e1, e2p) }
+      }
       case Assign(e1, e2) =>
-        ???
+        step(e1) map {e1p => Assign(e1p, e2)}
 
       /* Everything else is a stuck error. */
       case _ => throw StuckError(e)
