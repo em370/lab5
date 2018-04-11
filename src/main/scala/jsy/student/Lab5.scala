@@ -468,12 +468,7 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
       }
 
       case Decl(m, x, e1, e2) if !isRedex(m, e1) => getBinding(m, e1) map { e1p => substitute(e2, e1p, x)}
-      /*
-            case Decl(MConst, x, v1, e2) if isValue(v1) =>
-              doget map { _ => substitute(e2, v1, x) }
-            case Decl(MVar, x, v1, e2) if isValue(v1) =>
-              memalloc(v1) map { va => substitute(e2, Unary(Deref, va), x) }
-              */
+
       /** *** New cases for Lab 5. */
       case Unary(Deref, a @ A(_)) =>
         doget map {loc => loc get a match {
@@ -522,7 +517,7 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
         }
         else {
           val dwpazipp = mapFirstWith(pazip) {
-            case (param@(_: String, MTyp(m, _)), arg: Expr) if isRedex(m, arg) => Some(step(arg) map {argp => (param, argp)}) // map first reducible arg
+            case (param@(_: String, MTyp(m, _)), arg: Expr) if isRedex(m, arg) => Some(step(arg) map {argp => (param, argp)})
             case _ => None
           }
           dwpazipp map {pa => Call(v,pa.unzip._2)} // searchCall2 with updated args
@@ -539,9 +534,9 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
       case Print(e1) => step(e1) map { e1p => Print(e1p) }
       case Unary(uop, e1) =>
         step(e1) map { e1p => Unary(uop, e1p) }
-      case Binary(bop, v1, e2) if isValue(v1) => step(e2) map { e2p => Binary(bop, v1, e2p) } // v1 is value BinarySearch 2
+      case Binary(bop, v1, e2) if isValue(v1) => step(e2) map { e2p => Binary(bop, v1, e2p) }
       case Binary(bop, e1, e2) => step(e1) map { e1p => Binary(bop, e1p, e2) }
-      case If(e1, e2, e3) => step(e1) map { e1p => If(e1p, e2, e3) } // e1 is not a value (wouldve been caught earlier)
+      case If(e1, e2, e3) => step(e1) map { e1p => If(e1p, e2, e3) }
       /** *** Cases needing adapting from Lab 4 */
       case GetField(e1, f) =>
         step(e1) map { e1p => GetField(e1p, f) }
@@ -558,10 +553,10 @@ object Lab5 extends jsy.util.JsyApplication with Lab5Like {
 
       /** *** New cases for Lab 5.  */
       case Assign(e1, e2) if (isLValue(e1)) => {
-        step(e2) map { e2p => Assign(e1, e2p) }
+        step(e2) map { e22 => Assign(e1, e22) }
       }
       case Assign(e1, e2) =>
-        step(e1) map {e1p => Assign(e1p, e2)}
+        step(e1) map {e12 => Assign(e12, e2)}
 
       /* Everything else is a stuck error. */
       case _ => throw StuckError(e)
